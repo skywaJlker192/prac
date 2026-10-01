@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# база SQLite (создаётся при запуске)
+*.db
+*.db-shm
+*.db-wal

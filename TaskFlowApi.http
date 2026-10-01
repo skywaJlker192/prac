@@ -1,0 +1,154 @@
+@baseUrl = https://localhost:7001
+
+### ---------- УРОВЕНЬ 1 ----------
+
+### Создать проект
+POST {{baseUrl}}/api/v1/projects
+Content-Type: application/json
+
+{ "name": "Веб-сайт", "description": "Корпоративный портал" }
+
+### Получить все проекты
+GET {{baseUrl}}/api/v1/projects
+
+### Получить проект по ID
+GET {{baseUrl}}/api/v1/projects/1
+
+### Обновить проект
+PUT {{baseUrl}}/api/v1/projects/1
+Content-Type: application/json
+
+{ "name": "Веб-сайт v2", "description": "Обновлённый портал" }
+
+### Удалить проект
+DELETE {{baseUrl}}/api/v1/projects/2
+
+### Создать задачу
+POST {{baseUrl}}/api/v1/tasks
+Content-Type: application/json
+
+{ "title": "Сверстать главную", "status": "ToDo", "projectId": 1 }
+
+### Создать задачу без статуса (по умолчанию ToDo)
+POST {{baseUrl}}/api/v1/tasks
+Content-Type: application/json
+
+{ "title": "Задача без статуса", "projectId": 1 }
+
+### Получить задачу
+GET {{baseUrl}}/api/v1/tasks/1
+
+### Обновить задачу
+PUT {{baseUrl}}/api/v1/tasks/1
+Content-Type: application/json
+
+{ "title": "Первая задача (обновлена)", "description": "Новое описание", "status": "InProgress" }
+
+### Обновить задачу без статуса → 400
+PUT {{baseUrl}}/api/v1/tasks/1
+Content-Type: application/json
+
+{ "title": "Первая задача (обновлена)", "description": "Без статуса" }
+
+### Удалить задачу
+DELETE {{baseUrl}}/api/v1/tasks/3
+
+### Создать проект с пустым именем → 400
+POST {{baseUrl}}/api/v1/projects
+Content-Type: application/json
+
+{ "name": "", "description": "test" }
+
+### Создать задачу с коротким заголовком → 400
+POST {{baseUrl}}/api/v1/tasks
+Content-Type: application/json
+
+{ "title": "abc", "projectId": 1 }
+
+### Создать задачу со сроком в прошлом → 400
+POST {{baseUrl}}/api/v1/tasks
+Content-Type: application/json
+
+{ "title": "Задача с прошлым сроком", "projectId": 1, "dueDate": "2020-01-01T00:00:00Z" }
+
+### Получить несуществующий проект → 404
+GET {{baseUrl}}/api/v1/projects/999
+
+### ---------- УРОВЕНЬ 2 ----------
+
+### Создать проект через DTO
+POST {{baseUrl}}/api/v1/projects
+Content-Type: application/json
+
+{ "name": "Мобильное приложение", "description": "iOS + Android" }
+
+### Проверить, что в ответе нет лишних полей
+GET {{baseUrl}}/api/v1/projects/1
+
+### Добавить комментарий к задаче 1
+POST {{baseUrl}}/api/v1/tasks/1/comments
+Content-Type: application/json
+
+{ "content": "Нужно уточнить ТЗ", "authorId": 1 }
+
+### Получить комментарии задачи 1
+GET {{baseUrl}}/api/v1/tasks/1/comments
+
+### Комментарии к несуществующей задаче → 404
+GET {{baseUrl}}/api/v1/tasks/999/comments
+
+### Удалить комментарий
+DELETE {{baseUrl}}/api/v1/comments/1
+
+### v1 — есть Description, нет Priority
+GET {{baseUrl}}/api/v1/tasks/1
+
+### v2 — есть Priority, нет Description
+GET {{baseUrl}}/api/v2/tasks/1
+
+### ---------- УРОВЕНЬ 3 ----------
+
+### Первая страница, статус InProgress, сортировка по дате
+GET {{baseUrl}}/api/v2/tasks?page=1&pageSize=5&status=InProgress&sortBy=dueDate&sortDir=desc
+
+### Поиск по слову
+GET {{baseUrl}}/api/v2/tasks?page=1&pageSize=10&search=верст
+
+### pageSize больше 50 → 400
+GET {{baseUrl}}/api/v2/tasks?page=1&pageSize=100
+
+### Первый запрос — создаёт задачу
+POST {{baseUrl}}/api/v2/tasks
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{ "title": "Новая задача", "priority": "High", "projectId": 1 }
+
+### Повтор с тем же ключом и телом → тот же ответ (201, та же задача)
+POST {{baseUrl}}/api/v2/tasks
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{ "title": "Новая задача", "priority": "High", "projectId": 1 }
+
+### Тот же ключ, но другое тело → 409 Conflict
+POST {{baseUrl}}/api/v2/tasks
+X-Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{ "title": "Другая задача", "priority": "Low", "projectId": 1 }
+
+### Без ключа → 400
+POST {{baseUrl}}/api/v2/tasks
+Content-Type: application/json
+
+{ "title": "Без ключа", "priority": "Medium", "projectId": 1 }
+
+### Запрос к несуществующей задаче → 404 ProblemDetails
+GET {{baseUrl}}/api/v2/tasks/9999
+
+### Попытка завершить задачу без комментариев → 422
+PATCH {{baseUrl}}/api/v2/tasks/1/status
+Content-Type: application/json
+
+{ "status": "Done" }
